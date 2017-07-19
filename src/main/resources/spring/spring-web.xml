@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:mvc="http://www.springframework.org/schema/mvc"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/context
+       http://www.springframework.org/schema/context/spring-context.xsd
+       http://www.springframework.org/schema/mvc
+       http://www.springframework.org/schema/mvc/spring-mvc.xsd">
+    <!--配置SpringMVC-->
+    <!--（1）开启SpringMVC注解模式-->
+    <!-- 简化配置：
+        A.自动注册DefaultAnnotationHandlerMapping，AnnotationMethodHandlerAdapter；
+        B.提供一系列：数据绑定、数字和日期的格式。@NumberFormat，@DateTimeFormat，XML和JSON默认支持读写。
+    -->
+    <mvc:annotation-driven conversion-service="conversionService" validator="validator"/>
+    <!--配置转换器-->
+    <bean class="org.springframework.format.support.FormattingConversionServiceFactoryBean" id="conversionService">
+        <property name="converters">
+            <set>
+                <bean class="com.seckill.converter.CustomDateConverter" /><!--日期类型转换-->
+            </set>
+        </property>
+    </bean>
+    <!--配置校验器-->
+    <bean class="org.springframework.validation.beanvalidation.LocalValidatorFactoryBean" id="validator">
+        <!--指定校验器-->
+        <property name="providerClass"  value="org.hibernate.validator.HibernateValidator" />
+        <!--指定校验使用的资源文件，如果不指定默认使用类路径下的ValidationMessages.properties-->
+        <property name="validationMessageSource" ref="messageSource"/>
+    </bean>
+    <bean class="org.springframework.context.support.ReloadableResourceBundleMessageSource" id="messageSource">
+        <property name="basenames">
+            <list>
+                <!--指定资源文件名-->
+                <value>validation-messages</value>
+            </list>
+        </property>
+        <!--配置资源文件编码格式-->
+        <property name="fileEncodings" value="utf-8" />
+        <!--对资源文件的缓存时间-->
+        <property name="cacheSeconds" value="120" />
+    </bean>
+    <!--配置全局异常处理器-->
+    <bean class="com.seckill.exception.GlobalExceptionResolver" />
+    <!--配置文件上传解析器-->
+    <bean class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+        <property name="maxUploadSize" value="5242880" /><!--配置文件上传的最大尺寸为5MB-->
+    </bean>
+    <!--配置拦截器-->
+    <mvc:interceptors>
+        <!--可配置过个拦截器，并且拦截器按照顺序执行-->
+        <mvc:interceptor>
+            <mvc:mapping path="/**" />
+            <bean class="com.seckill.interceptor.LogInterceptor" /><!--日志拦截器-->
+        </mvc:interceptor>
+        <mvc:interceptor>
+            <mvc:mapping path="/**" />
+            <bean class="com.seckill.interceptor.LoginInterceptor" /><!--登录拦截器-->
+        </mvc:interceptor>
+        <mvc:interceptor>
+            <mvc:mapping path="/**"/>
+            <bean class="com.seckill.interceptor.AuthorityInterceptor" /><!--权限校验拦截器-->
+        </mvc:interceptor>
+    </mvc:interceptors>
+    <!--（2）映射路径：A.加入对静态资源的处理；B.允许使用"/"做整体映射-->
+    <mvc:default-servlet-handler />
+    <!--（3）配置JSP显示ViewResolver-->
+    <bean class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+        <property name="viewClass" value="org.springframework.web.servlet.view.JstlView" />
+        <property name="prefix" value="/WEB-INF/jsp/" />
+        <property name="suffix" value=".jsp" />
+    </bean>
+    <!--（4）扫描WEB相关的包-->
+    <context:component-scan base-package="com.seckill.web" />
+</beans>
